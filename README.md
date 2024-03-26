@@ -1,1 +1,1 @@
-small project for blockchain demostration with js
+small project for blockchain demonstration with js
