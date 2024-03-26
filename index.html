@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Blockchain</title>
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="modal.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="sha256.js"></script>
+	<script src="blockchain.js"></script>
+	<script defer src="promise.js"></script>
+	<script defer src="main.js"></script>
+</head>
+<body>
+	<header>Blockchain</header>
+	<div class="col-1400" style="height: 100vh;">
+		<section class="width-25" id="blocks">
+			<h2>Blöcke</h2>
+			<div class="card mb-16">Hier kommen Blöcke rein</div>
+		</section>
+		<section class="col">
+			<div class="col-850">
+				<section>
+					<h2>Transaktionen</h2>
+					<div class="mb-16">
+						<select name="from" id="from" class="mr-16 mb-16">
+							<option value="" disabled>an</option>
+						</select>
+						<select name="to" id="to">
+							<option value="" disabled>an</option>
+						</select>
+					</div>
+					<div>
+						<input type="number" min="1" placeholder="Betrag" id="amount" value="10" class="mr-16 mb-16">
+						<button id="toMempool">Abschicken</button>
+					</div>
+				</section>
+				<section id="miners">
+					<h2>Nodes</h2>
+				</section>
+			</div>
+			<div class="col-850 fill-rest">
+				<section  id="trans">
+					<h2>Mempool</h2>
+					<div id="mempool"></div>
+				</section>
+				<section>
+					<h2>Balance</h2>
+					<canvas id="myChart"></canvas>
+				</section>
+				<section>
+					<h2>Logs</h2>
+					<code id="logs"></code>
+				</section>
+			</div>
+		</section>
+	</div>
+
+	<div class="popup" id="popup">
+		<div class="content">
+			<h1 class="title">Popup Title</h1>
+			<p><code class="body">
+				Test
+				 </code>
+			</p>
+			<div class="close-btn" onclick="javascript: popup.classList.toggle('active');">&times;</div>
+		</div>
+	</div>
+</body>
+</html>

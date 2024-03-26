@@ -1,0 +1,40 @@
+.popup {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.7);
+    display: none;
+}
+
+.popup .content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    background: #eee;
+    min-width: 550px;
+    padding: 20px;
+    color: black;
+}
+.popup .close-btn {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 30px;
+    height: 30px;
+    background: #222;
+    color: #fff;
+    font-size: 25px;
+    font-weight: 600px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    cursor:pointer;
+}
+
+
+.popup.active {
+    display: block;
+}
