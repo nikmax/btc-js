@@ -12,31 +12,34 @@ class Block{
 		this.lastHash = '';
 		this.time = Date.now();
 		this.data = data;
+		this.difficulty = 0;
 		this.nonce = 0;
 		this.hash = this.calculateHash();
 	}
 
 	calculateHash(){
-		return sha256(this.nonce + this.lastHash + this.time + JSON.stringify(this.data));
+		return sha256(this.difficulty + this.nonce + this.lastHash + this.time + JSON.stringify(this.data));
 	}
 
 	async mine(difficulty){
-			while(this.hash.substring(0,difficulty) !== Array(difficulty + 1).join("0")){
-				this.nonce++;
-				this.hash = this.calculateHash();
-				await new Promise(resolve => setTimeout(resolve,0));
-			}
+		this.difficulty = difficulty;
+		this.hash = this.calculateHash();
+		while(this.hash.substring(0,this.difficulty) !== Array(this.difficulty + 1).join("0")){
+			this.nonce++;
+			this.hash = this.calculateHash();
+			await new Promise(resolve => setTimeout(resolve,0));
+		}
 	}
-
-
 }
 
 class Blockchain{
 	constructor(){
-		this.difficulty =2;
-		this.miningReward = 50;
+		this.activeMiner = [];
 		this.mempool = [];
 		this.chain = [];
+		this.difficulty =3;
+		this.miningReward = this.getBlockReward();
+
 		if(!localStorage.chain){
 			this.chain = [new Block("GenesisBlock")];
 			localStorage.setItem('chain', JSON.stringify(this.chain));
@@ -50,6 +53,7 @@ class Blockchain{
 				let block = new Block(b.data);
 				block.lastHash = b.lastHash;
 				block.time = b.time;
+				block.difficulty = b.difficulty;
 				block.nonce = b.nonce;
 				block.hash = b.hash;
 				this.chain.push(block);
@@ -79,6 +83,7 @@ class Blockchain{
 			return false;
 		}
 		if(block.lastHash == this.getLatestBlock().hash){
+			this.getBlockReward();
 			this.chain.push(block);
 			block.data.forEach((trans)=>{
 				let a= this.mempool.find((t,i) =>{
@@ -97,8 +102,14 @@ class Blockchain{
 		}
 	}
 
+	getBlockReward(){
+		let blockReward = 50;for (let i = this.chain.length / 210; i >= 1; i--){ blockReward /= 2;} // halving alle 210 blöcke
+		if(blockReward < 1) blockReward = 0;
+		this.miningReward = blockReward;
+		return blockReward;
+	}
 	isChainValid(){
-
+		let coins = 0;
 		let invalidBlock = false;
 		const blocks = document.getElementById('blocks');
 		blocks.innerHTML = '<h2>Blöcke</h2>';
@@ -113,23 +124,30 @@ class Blockchain{
 				//currBlock.lastHash = prevBlock.calculateHash()
 			}
 			if(invalidBlock) div.style.background ='#361a2e';
+			else {
+				for(const trans of currBlock.data){
+					if(trans.fromAddress === null) coins += trans.amount;
+				}
+			}
 			const date = new Date(currBlock.time);
 			let t = ('0' + date.getHours()).slice(-2);
 			t += ':' + ('0' + date.getMinutes()).slice(-2);
 			t += ':' + ("0" + date.getSeconds()).slice(-2);
 
 			div.innerHTML =      'Block # ' + i;
-			div.innerHTML += '<br> Prev : ' + (currBlock.lastHash).slice(0,eval(this.difficulty+10)) + '...';
-			div.innerHTML += '<br> Hash : ' + (currBlock.hash).slice(0,eval(this.difficulty+10)) + '...';
+			div.innerHTML += '<br>Prev : ' + (currBlock.lastHash).slice(0,eval(this.difficulty+10)) + '...';
+			div.innerHTML += '<br>Hash : ' + (currBlock.hash).slice(0,eval(this.difficulty+10)) + '...';
+			div.innerHTML += '<br>Difficulty : ' + currBlock.difficulty;
 			div.innerHTML += '<br>Nonce : ' + currBlock.nonce;
-			div.innerHTML += '<br> Time : ' + t;
+			div.innerHTML += '<br>Time : ' + t;
 
 			div.setAttribute('data',i);
 			div.style.cursor = 'pointer';
 			div.addEventListener("click", showBlock);
 			blocks.appendChild(div);
 		});
-
+		document.querySelector('#blocks>h2').innerText = this.chain.length + ' Blöcke ('+coins+' coins geschürft)';
+		
 		return !invalidBlock;
 	}
 
@@ -149,18 +167,26 @@ class Blockchain{
 	async minePendingTransactions(miner,callback){
 		if(this.isChainValid()) {
 			let mempool = this.getMempool();
-			mempool.push(new Transaction(null, miner, this.miningReward));
+			const currTrans = new Transaction(null, miner, this.miningReward);
+			mempool.push(currTrans);
 			let block = new Block(mempool);
 			block.lastHash = this.getLatestBlock().hash;
-
-			log("start block mining");
-
+			this.activeMiner.push(miner);
+			log(miner + ' -> start block mining.');
+			document.querySelector('header').innerText ='Sander\'s Blockchain ('+ this.activeMiner.length + ' miner on work)';
 			await block.mine(this.difficulty);
 			if(this.addBlock(block)){
-				log('New block #' + (this.chain.length -1) + ' : ' + (block.hash).slice(0,eval(this.difficulty+5)) + '...');
+				log(miner + ' found new block #' + (this.chain.length -1) + ' : ' + (block.hash).slice(0,eval(this.difficulty+5)) + '... block reward ' + currTrans.amount + ' coins.' );
 			} else {
-				log('Block from ' + miner + ' returned!');	
+				log('Block from ' + miner + ' rejected!');	
 			}
+			this.activeMiner.find((m,i,arr)=>{
+				if(m == miner) {
+					this.activeMiner.splice(i,1);
+					return true;
+				}
+			});
+			document.querySelector('header').innerText ='Sander\'s Blockchain ('+ this.activeMiner.length + ' active miner)';
 		}else{
 			log('chain is invalid!');
 		}
@@ -215,10 +241,11 @@ function showBlock(){
 	t += ':' + ('0' + date.getMinutes()).slice(-2);
 	t += ':' + ("0" + date.getSeconds()).slice(-2);
 
-	txt ='Prev&nbsp; : ' + block.lastHash;
-	txt += '<br>Hash&nbsp; : ' + block.hash;
+	txt ='Prev : ' + block.lastHash;
+	txt += '<br>Hash : ' + block.hash;
+	txt += '<br>Difficulty : ' + block.difficulty;
 	txt += '<br>Nonce : ' + block.nonce;
-	txt += '<br>Time&nbsp; : ' + t;
+	txt += '<br>Time : ' + t;
 	txt += '<br>data : ' +JSON.stringify(block.data);
 
 	popup.querySelector('.title').innerText = 'Block # ' + i;

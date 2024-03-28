@@ -35,9 +35,9 @@ function updateChart(){
 	chart.update();
 }
 
-	updateChart();
+updateChart();
 
-	members.forEach(function(member) {
+members.forEach(function(member) {
 		const txt = document.createTextNode('Miner - ' + member);
 		const div1 = document.createElement('div');
 		const div2 = document.createElement('div');
@@ -46,20 +46,23 @@ function updateChart(){
 		div2.classList.add('play-btn');
 		div2.classList.add('node');
 		div2.setAttribute('data',member);
-		div2.onclick = () => {
+		div2.onclick = async function() {
 			div2.classList.toggle('pause-btn');
-			if (div2.classList.contains('pause-btn')){
-				coin.minePendingTransactions(member,()=>{
-					div2.classList.toggle('pause-btn');
-					updateChart();
-				});
+			while (div2.classList.contains('pause-btn')){
+				if(!coin.activeMiner.find( m => m == member)){
+					coin.minePendingTransactions(member,()=>{
+						//div2.classList.toggle('pause-btn');
+						updateChart();						
+					});
+				}
+				await new Promise(resolve => setTimeout(resolve,0));
 			}
 		};
 		
 		div1.appendChild(div2);
 		div1.appendChild(txt);
 		miners.appendChild(div1);
-	});
+});
 
 	members.forEach(function(member,i) {
 		const div1 = document.createElement('option');
